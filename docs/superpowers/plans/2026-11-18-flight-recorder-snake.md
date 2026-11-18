@@ -101,8 +101,9 @@ export type LifeEventType = "start" | "pause" | "resume" | "end";
 export interface LifeEvent { type: LifeEventType; tick: number; cause?: DeathCause | "win" }
 export interface TickFrame {
   t: number;          // tick 号
+  d: Direction;       // 本 tick 后朝向
   h: Cell;            // 本 tick 新头格
-  tail: 0 | 1;        // 1=尾格移除（未进食），0=生长（进食）
+  tail: 0 | 1;        // 1=尾格移除（未进食），0=生长或蛇身无尾变化
   f: Cell | null;     // 本 tick 后食物位（进食 tick=新食物；win 后 null）
   s: number;          // 本 tick 后分数
 }
@@ -116,28 +117,30 @@ export interface Recording {
   frames: TickFrame[];
   final: { status: GameStatus; cause?: DeathCause | "win"; score: number; ticks: number } | null;
 }
-export interface ReplayFrame { tick: number; cells: Cell[]; food: Cell | null; score: number }
+export interface ReplayFrame { tick: number; cells: Cell[]; dir: Direction; food: Cell | null; score: number }
 export function createRecording(skinId: string, startedAt: number): Recording;
-export function recordTick(rec: Recording, prev: SnakeState, next: SnakeState, event: TickEvent): void;
+export function recordTick(rec: Recording, prev: SnakeState, next: SnakeState): void;
+// 仅非终局 tick（event "move"/"food"）调用；终局 tick 蛇身不动、不记帧，走 recordEvent("end")+finishRecording
 export function recordEvent(rec: Recording, type: LifeEventType, tick: number, cause?: DeathCause | "win"): void;
 export function finishRecording(rec: Recording, state: SnakeState, endedAt: number, cause?: DeathCause | "win"): void;
 export function expandRecording(rec: Recording): ReplayFrame[];   // start 蛇身 + 增量逐帧展开全蛇身
-export function isWellFormedRecording(r: unknown): r is Recording; // 读侧守卫：version/skinId/帧形状（h 在 0..19 界内、tail∈{0,1}、s 数值）/事件类型合法
+export function isWellFormedRecording(r: unknown): r is Recording; // 读侧守卫：version/skinId/帧形状（h 在 0..19 界内、tail∈{0,1}、d 为合法方向、s 数值）/事件类型合法
 ```
 
 - [ ] **Step 1: 写失败测试** `src/lib/recorder.test.ts`：
   - `createRecording`：version 1、start 深等于 INITIAL_CELLS、frames/events 空、final null
-  - `recordTick` move 帧：prev/next 用 Task 1 step 真跑一格，断言帧 `{t:1, h:新头, tail:1, f:食物原位, s:0}`
+  - `recordTick` move 帧：prev/next 用 Task 1 step 真跑一格，断言帧 `{t:1, d, h:新头, tail:1, f:食物原位, s:0}`
   - `recordTick` food 帧：进食 tick 断言 `tail:0`、`s:10`、`f` 为新食物位
-  - `recordEvent`/`finishRecording`：pause/resume 入 events；finish 后 final=`{status:"dead", cause:"wall", score, ticks}`、endedAt 落值
-  - `expandRecording`：3 帧记录展开后每帧 cells 长度正确（move 长 3→3→3，food 后 4）、头一致、food 逐帧正确
-  - `isWellFormedRecording` 拒绝面：非对象/null、version≠1、帧 h 越界（如 {x:99,y:0}）、tail=2、events 含非法 type、frames 非数组——全部 false；良构真记录 true
-- [ ] **Step 2: 写失败测试** `src/lib/captured-assertions.test.ts`（书 ch8 原题「按捕获数据写断言」，独立 describe 注明）：用 Task 1+2 组合跑**三局脚本化模拟**（种子化 rng、逐 tick `turn`+`step`+`recordTick`），断言只针对捕获序列：
-  - 撞墙局：expand 后最后一帧 status 语义经 final 断言 `cause:"wall"`，且死亡帧的 `h` 在界外方向的前一格
-  - 咬自身局：final `cause:"self"`，死亡帧 `h` 与该帧 cells 除头外的某格重合
+  - 终局 tick 不产生帧：撞墙 step 后 recordTick 不入 frames（终局只走 end 事件路径）
+  - `recordEvent`/`finishRecording`：pause/resume 入 events；终局 `recordEvent(rec,"end",tick,cause)` 后 `finishRecording` → final=`{status:"dead", cause:"wall", score, ticks}`、endedAt 落值
+  - `expandRecording`：3 帧记录展开后每帧 cells 长度正确（move 长 3→3→3，food 后 4）、头一致、dir 逐帧正确、food 逐帧正确
+  - `isWellFormedRecording` 拒绝面：非对象/null、version≠1、帧 h 越界（如 {x:99,y:0}）、tail=2、d 非法方向、events 含非法 type、frames 非数组——全部 false；良构真记录 true
+- [ ] **Step 2: 写失败测试** `src/lib/captured-assertions.test.ts`（书 ch8 原题「按捕获数据写断言」，独立 describe 注明）：用 Task 1+2 组合跑**三局脚本化模拟**（种子化 rng、逐 tick `turn`+非终局 `step`+`recordTick`，终局走 end 事件路径），断言只针对捕获序列：
+  - 撞墙局：final `cause:"wall"`；末帧 `h` 沿末帧 `d` 前进一格出界（x<0 或 x>19 或 y<0 或 y>19）
+  - 咬自身局：final `cause:"self"`；末帧 `h` 沿末帧 `d` 前进一格，落点在该帧展开蛇身（除头外）某格重合
   - 吃食物局：捕获序列中存在 `tail:0` 帧，且其 `s` 比前一帧恰 +10
 - [ ] **Step 3: 跑测试确认失败** — `npm test`
-- [ ] **Step 4: 实现 `src/lib/recorder.ts`**。要点：`recordTick` 从 prev/next 差分推帧（h=next.cells[0]、tail=长度未变?0:1、s、f）；`expandRecording` 从 rec.start 起，按帧顺序推蛇身数组（shift/push），纯函数无副作用
+- [ ] **Step 4: 实现 `src/lib/recorder.ts`**。要点：`recordTick` 从 prev/next 差分推帧（h=next.cells[0]、d=next.dir、s=next.score、f=next.food、tail=「prev 尾格与 next 尾格深比较不同→1 否则 0」——不是长度差分，终局蛇身不动的语义由「不调用」保证）；`expandRecording` 从 rec.start 起，每帧 push h、tail===1 则 pop，纯函数无副作用
 - [ ] **Step 5: 跑测试确认全绿** — `npm test`
 - [ ] **Step 6: Commit** — `git add src/lib/recorder.ts src/lib/recorder.test.ts src/lib/captured-assertions.test.ts && git commit -m "feat(recorder): 行车记录仪——增量捕获/展开/守卫+按捕获数据三分支断言"`
 
@@ -239,7 +242,7 @@ export function saveLastRun(storage: Storage, rec: Recording): void;
   - 键盘：Arrow/WASD 经 `filterInput` 单缓冲（最后一次有效键在下一 tick 生效）；Space/P 暂停/恢复
   - 局状态机：待机（按键开局，`createRecording`+`recordEvent("start")`）→running→paused→dead/won
   - interval 驱动：`setInterval` 周期=`tickIntervalMs(skin, score)`，score 变化时重建 interval；**暂停=清 interval**，恢复=重建，不追帧
-  - 每 tick：`turn`+`step`+`recordTick`；终局 `finishRecording`+`saveScore`+`saveLastRun`
+  - 每 tick：`turn`+非终局 `step`+`recordTick`（仅 move/food 帧入记录）；终局 tick 蛇身不动不记帧，走 `recordEvent(rec,"end",tick,cause)`+`finishRecording`+`saveScore`+`saveLastRun`
   - 待机/终局时清除 interval；组件卸载清 interval
 - [ ] **Step 4: 验证** — `npm run build` 绿（tsc strict + vite）；`npm test` 仍全绿（无回归）
 - [ ] **Step 5: Commit** — `git add src/App.tsx src/BoardView.tsx src/Hud.tsx src/index.css && git commit -m "feat(ui): 仪表盘壳——主循环/HUD/REC/暂停语义"`
