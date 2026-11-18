@@ -2,6 +2,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import BoardView from "./BoardView";
 import Hud from "./Hud";
+import ReportCard from "./ReportCard";
+import ReplayPlayer from "./ReplayPlayer";
 import {
   DEFAULT_SKIN_ID,
   SKINS,
@@ -54,16 +56,11 @@ interface Session {
   rec: Recording;
 }
 
-const END_TEXT: Record<DeathCause | "win", string> = {
-  wall: "事故报告：撞墙",
-  self: "事故报告：咬到自己",
-  win: "通关：整板填满",
-};
-
 export default function App() {
   const [skinId, setSkinId] = useState<string>(DEFAULT_SKIN_ID);
   const skin: SkinConfig = getSkin(skinId);
   const [phase, setPhase] = useState<Phase>("idle");
+  const [replayOpen, setReplayOpen] = useState(false);
   const [view, setView] = useState<SnakeState | null>(null);
   const sessionRef = useRef<Session | null>(null);
   const bufferedRef = useRef<Direction | null>(null); // 单缓冲：最后一次有效键下一 tick 生效
@@ -137,6 +134,15 @@ export default function App() {
     }
   }, [gotoPhase]);
 
+  // 再来一局：回放面板关闭 + 会话清空，回到待机（按方向键开局）
+  const restartToIdle = useCallback(() => {
+    setReplayOpen(false);
+    sessionRef.current = null;
+    bufferedRef.current = null;
+    setView(null);
+    gotoPhase("idle");
+  }, [gotoPhase]);
+
   // interval 周期=tickIntervalMs(skin, score)——score 变化（吃食物）即重建；卸载清理
   const intervalMs = tickIntervalMs(skin, view ? view.score : 0);
   useEffect(() => {
@@ -145,9 +151,11 @@ export default function App() {
     return () => clearInterval(id);
   }, [phase, intervalMs, runTick]);
 
-  // 键盘：Arrow/WASD 经 filterInput 入单缓冲；Space/P 暂停/恢复；待机/终局按方向键开局
+  // 键盘：Arrow/WASD 经 filterInput 入单缓冲；Space/P 暂停/恢复；待机/终局按方向键开局。
+  // 回放面板打开期间键盘不接局——方向键不再开局，主循环本就无 interval（ended 相）
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (replayOpen) return;
       const dir = KEY_TO_DIR[e.key];
       if (dir !== undefined) {
         e.preventDefault();
@@ -170,20 +178,37 @@ export default function App() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [startGame, togglePause]);
+  }, [startGame, togglePause, replayOpen]);
 
   const ended = phase === "ended" && view !== null;
-  const endCause: DeathCause | "win" | null =
-    ended && sessionRef.current ? (sessionRef.current.rec.final?.cause ?? null) : null;
+  const endRec = ended && sessionRef.current ? sessionRef.current.rec : null;
 
   const overlayText =
     phase === "idle"
       ? "行车记录仪就绪——按方向键开局"
       : phase === "paused"
         ? "已暂停——按 Space/P 继续"
-        : ended
-          ? `${endCause ? END_TEXT[endCause] : "本局结束"}——按方向键再来一局`
-          : null;
+        : null;
+
+  const skinButtons = (
+    <div className="flex gap-2">
+      {SKINS.map((s) => (
+        <button
+          key={s.id}
+          type="button"
+          onClick={() => setSkinId(s.id)}
+          className="border px-2 py-1 font-mono text-xs"
+          style={{
+            borderColor: s.colors.hudAccent,
+            color: s.colors.hudAccent,
+            ...(s.id === skin.id ? { backgroundColor: s.colors.grid } : {}),
+          }}
+        >
+          {s.name}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <main
@@ -201,33 +226,36 @@ export default function App() {
 
       <div className="relative">
         <BoardView cells={view ? view.cells : null} food={view ? view.food : null} skin={skin} />
-        {overlayText !== null && (
+        {ended && endRec !== null ? (
+          replayOpen ? (
+            <ReplayPlayer
+              recording={endRec}
+              skin={skin}
+              onClose={() => setReplayOpen(false)}
+            />
+          ) : (
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-4 text-center"
+              style={{ backgroundColor: skin.colors.bg }}
+            >
+              <ReportCard
+                recording={endRec}
+                skin={skin}
+                onReplay={() => setReplayOpen(true)}
+                onRestart={restartToIdle}
+              />
+              {skinButtons}
+            </div>
+          )
+        ) : overlayText !== null ? (
           <div
             className="absolute inset-0 flex flex-col items-center justify-center gap-4 p-4 text-center opacity-90"
             style={{ backgroundColor: skin.colors.board, color: skin.colors.hudAccent }}
           >
             <p className="font-mono text-sm tracking-wider">{overlayText}</p>
-            {(phase === "idle" || ended) && (
-              <div className="flex gap-2">
-                {SKINS.map((s) => (
-                  <button
-                    key={s.id}
-                    type="button"
-                    onClick={() => setSkinId(s.id)}
-                    className="border px-2 py-1 font-mono text-xs"
-                    style={{
-                      borderColor: s.colors.hudAccent,
-                      color: s.colors.hudAccent,
-                      ...(s.id === skin.id ? { backgroundColor: s.colors.grid } : {}),
-                    }}
-                  >
-                    {s.name}
-                  </button>
-                ))}
-              </div>
-            )}
+            {phase === "idle" && skinButtons}
           </div>
-        )}
+        ) : null}
       </div>
 
       <p className="font-mono text-xs opacity-70" style={{ color: skin.colors.hudAccent }}>
