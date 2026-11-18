@@ -252,4 +252,36 @@ describe("placeFood", () => {
       expect(s.cells.some((c) => c.x === f!.x && c.y === f!.y)).toBe(false);
     }
   });
+
+  /** 与 placeFood 同序重建空格表——rng 极端值落点断言用。 */
+  function emptyCells(occupied: readonly Cell[]): Cell[] {
+    const taken = new Set(occupied.map((c) => `${c.x},${c.y}`));
+    const out: Cell[] = [];
+    for (let y = 0; y < 20; y++) {
+      for (let x = 0; x < 20; x++) {
+        if (!taken.has(`${x},${y}`)) out.push({ x, y });
+      }
+    }
+    return out;
+  }
+
+  it("rng=1（契约面上界）clamp 到末位空格，不越界 undefined", () => {
+    const s = createInitialState(rng0);
+    const empty = emptyCells(s.cells);
+    const f = placeFood(s.cells, () => 1);
+    expect(f).toEqual(empty[empty.length - 1]);
+  });
+
+  it("rng=-1（负值越界）clamp 到首位空格，不抛错", () => {
+    const s = createInitialState(rng0);
+    const empty = emptyCells(s.cells);
+    const f = placeFood(s.cells, () => -1);
+    expect(f).toEqual(empty[0]);
+  });
+
+  it("rng=0 落首位空格（clamp 不改变正常值）", () => {
+    const s = createInitialState(rng0);
+    const empty = emptyCells(s.cells);
+    expect(placeFood(s.cells, () => 0)).toEqual(empty[0]);
+  });
 });

@@ -149,15 +149,15 @@ export function isWellFormedRecording(r: unknown): r is Recording {
   for (const e of rec.events) {
     if (typeof e !== "object" || e === null) return false;
     if (!legalTypes.includes(e.type)) return false;
-    if (typeof e.tick !== "number") return false;
+    if (!Number.isFinite(e.tick)) return false;
   }
   for (const f of rec.frames) {
     if (typeof f !== "object" || f === null) return false;
     if (!inBoundsCell(f.h)) return false;
     if (f.tail !== 0 && f.tail !== 1) return false;
     if (!DIRECTIONS.includes(f.d)) return false;
-    if (typeof f.s !== "number") return false;
-    if (typeof f.t !== "number") return false;
+    if (!Number.isFinite(f.s)) return false;
+    if (!Number.isFinite(f.t)) return false;
     if (f.f !== null && !inBoundsCell(f.f)) return false;
   }
   return true;

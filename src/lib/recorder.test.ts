@@ -221,4 +221,28 @@ describe("isWellFormedRecording", () => {
     const bad = { ...wellFormed(), frames: "nope" };
     expect(isWellFormedRecording(bad)).toBe(false);
   });
+
+  it("帧 s=NaN / s=Infinity → false", () => {
+    const rec = wellFormed();
+    const badS = { ...rec, frames: [{ ...rec.frames[0], s: NaN }] };
+    const badSInf = { ...rec, frames: [{ ...rec.frames[0], s: Infinity }] };
+    expect(isWellFormedRecording(badS)).toBe(false);
+    expect(isWellFormedRecording(badSInf)).toBe(false);
+  });
+
+  it("帧 t=NaN / t=Infinity → false", () => {
+    const rec = wellFormed();
+    const badT = { ...rec, frames: [{ ...rec.frames[0], t: NaN }] };
+    const badTInf = { ...rec, frames: [{ ...rec.frames[0], t: Infinity }] };
+    expect(isWellFormedRecording(badT)).toBe(false);
+    expect(isWellFormedRecording(badTInf)).toBe(false);
+  });
+
+  it("事件 tick=NaN / tick=Infinity → false", () => {
+    const rec = wellFormed();
+    const badE = { ...rec, events: [{ type: "start" as const, tick: NaN }] };
+    const badEInf = { ...rec, events: [{ type: "start" as const, tick: Infinity }] };
+    expect(isWellFormedRecording(badE)).toBe(false);
+    expect(isWellFormedRecording(badEInf)).toBe(false);
+  });
 });

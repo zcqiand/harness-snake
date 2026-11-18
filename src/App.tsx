@@ -31,14 +31,15 @@ import {
   loadLastRun,
   loadScores,
   loadSkinId,
+  safeLocalStorage,
   saveLastRun,
   saveScore,
   saveSkinId,
   type ScoreEntry,
 } from "./lib/history";
 
-// 模块边界处取一次——history 层 Storage 参数注入
-const storage: Storage = globalThis.localStorage;
+// 模块边界处取一次——history 层 Storage 参数注入；localStorage 不可用（阻止所有 cookie）回落内存假件，不炸模块加载
+const storage: Storage = safeLocalStorage();
 // UI 层是唯一允许 Math.random 的地方——包装成注入 rng
 const rng = () => Math.random();
 
@@ -211,18 +212,18 @@ export default function App() {
   );
 
   // 键盘：Arrow/WASD 经 handleDirInput；Space/P 暂停/恢复。
-  // 回放/成绩册面板打开期间键盘不接局
+  // 回放/成绩册面板打开期间键盘不接局，但 dir/space 仍先 preventDefault——不吃浏览器默认滚动
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (replayRec !== null || bookOpen) return;
       const dir = KEY_TO_DIR[e.key];
+      const isPauseKey = e.key === " " || e.key === "p" || e.key === "P";
+      if (dir !== undefined || isPauseKey) e.preventDefault();
+      if (replayRec !== null || bookOpen) return;
       if (dir !== undefined) {
-        e.preventDefault();
         handleDirInput(dir);
         return;
       }
-      if (e.key === " " || e.key === "p" || e.key === "P") {
-        e.preventDefault();
+      if (isPauseKey) {
         togglePause();
       }
     };

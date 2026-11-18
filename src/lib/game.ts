@@ -95,7 +95,8 @@ export function placeFood(occupied: readonly Cell[], rng: () => number): Cell | 
     }
   }
   if (empty.length === 0) return null;
-  return empty[Math.floor(rng() * empty.length)];
+  // 注入 rng 契约面下极端值（rng()=1 / 负数）clamp 落界内，不越界 undefined
+  return empty[Math.min(empty.length - 1, Math.max(0, Math.floor(rng() * empty.length)))];
 }
 
 export function step(state: SnakeState, rng: () => number): StepResult {

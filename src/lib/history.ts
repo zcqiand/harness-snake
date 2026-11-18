@@ -101,3 +101,43 @@ export function saveSkinId(storage: Storage, id: string): void {
     // 配额满——静默丢弃，不打断游戏
   }
 }
+
+/** 内存假 Storage——Map 版 no-op。localStorage 不可用时的回落假件（数据不持久，但 UI 全链路不炸）。 */
+export class MemoryStorage implements Storage {
+  private map = new Map<string, string>();
+  get length(): number {
+    return this.map.size;
+  }
+  getItem(key: string): string | null {
+    return this.map.has(key) ? (this.map.get(key) as string) : null;
+  }
+  setItem(key: string, value: string): void {
+    this.map.set(key, String(value));
+  }
+  removeItem(key: string): void {
+    this.map.delete(key);
+  }
+  clear(): void {
+    this.map.clear();
+  }
+  key(index: number): string | null {
+    return Array.from(this.map.keys())[index] ?? null;
+  }
+}
+
+const memoryStorage = new MemoryStorage();
+
+/**
+ * localStorage 安全取用——浏览器「阻止所有 cookie」时属性访问 globalThis.localStorage
+ * 本身抛 SecurityError（2048 白屏同族），模块加载期直取会让 App 整体不渲染。
+ * 抛错或缺失回落内存假件：loadSkinId/loadScores/loadLastRun 全部安全返回默认值。
+ */
+export function safeLocalStorage(): Storage {
+  try {
+    const s = globalThis.localStorage;
+    if (s !== null && s !== undefined) return s;
+  } catch {
+    // SecurityError——阻止所有 cookie 场景，走内存假件
+  }
+  return memoryStorage;
+}

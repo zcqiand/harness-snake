@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { DEFAULT_SKIN_ID } from "../config/skins";
 import { createInitialState, step, type DeathCause } from "./game";
 import { createRecording, finishRecording, recordTick, type Recording } from "./recorder";
-import { bestScore, LAST_RUN_KEY, loadLastRun, loadScores, loadSkinId, saveLastRun, saveScore, saveSkinId, SCORES_KEY, SKIN_KEY, type ScoreEntry } from "./history";
+import { bestScore, LAST_RUN_KEY, loadLastRun, loadScores, loadSkinId, MemoryStorage, safeLocalStorage, saveLastRun, saveScore, saveSkinId, SCORES_KEY, SKIN_KEY, type ScoreEntry } from "./history";
 
 /** 内存假 Storage——Map 实现，2048 同款手写，零依赖。 */
 class FakeStorage implements Storage {
@@ -212,5 +212,82 @@ describe("loadLastRun / saveLastRun", () => {
     const rec = realRecording();
     saveLastRun(s, rec);
     expect(loadLastRun(s)).toEqual(rec);
+  });
+});
+
+describe("MemoryStorage 假件", () => {
+  it("缺键 getItem→null；set/get 往返", () => {
+    const s = new MemoryStorage();
+    expect(s.getItem("k")).toBeNull();
+    s.setItem("k", "v1");
+    expect(s.getItem("k")).toBe("v1");
+    s.setItem("k", "v2");
+    expect(s.getItem("k")).toBe("v2");
+  });
+
+  it("removeItem 后回到缺键；length 随键数变化；key(i) 按 key 序取", () => {
+    const s = new MemoryStorage();
+    s.setItem("a", "1");
+    s.setItem("b", "2");
+    expect(s.length).toBe(2);
+    expect(s.key(0)).toBe("a");
+    expect(s.key(1)).toBe("b");
+    expect(s.key(2)).toBeNull();
+    s.removeItem("a");
+    expect(s.getItem("a")).toBeNull();
+    expect(s.length).toBe(1);
+    s.clear();
+    expect(s.length).toBe(0);
+    expect(s.getItem("b")).toBeNull();
+  });
+});
+
+describe("safeLocalStorage", () => {
+  /** 把 globalThis.localStorage 换成「属性访问即抛」的 getter——浏览器阻止所有 cookie 同形状。 */
+  function stubThrowingLocalStorage(): void {
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      get() {
+        throw new Error("SecurityError: blocked cookies");
+      },
+    });
+  }
+
+  function restoreLocalStorage(): void {
+    // delete 后回到环境原状（node 无此键=undefined）
+    Reflect.deleteProperty(globalThis, "localStorage");
+  }
+
+  it("localStorage 访问抛错→回落 MemoryStorage", () => {
+    stubThrowingLocalStorage();
+    try {
+      const s = safeLocalStorage();
+      expect(s).toBeInstanceOf(MemoryStorage);
+    } finally {
+      restoreLocalStorage();
+    }
+  });
+
+  it("回落假件上 loadSkinId/loadScores/loadLastRun 全部安全返回默认值", () => {
+    stubThrowingLocalStorage();
+    try {
+      const s = safeLocalStorage();
+      expect(loadSkinId(s)).toBe(DEFAULT_SKIN_ID);
+      expect(loadScores(s)).toEqual([]);
+      expect(loadLastRun(s)).toBeNull();
+    } finally {
+      restoreLocalStorage();
+    }
+  });
+
+  it("回落假件可用（读写不抛）", () => {
+    stubThrowingLocalStorage();
+    try {
+      const s = safeLocalStorage();
+      expect(() => saveScore(s, entry())).not.toThrow();
+      expect(loadScores(s)).toEqual([entry()]);
+    } finally {
+      restoreLocalStorage();
+    }
   });
 });

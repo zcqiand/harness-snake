@@ -7,7 +7,7 @@ import type { Recording } from "./lib/recorder";
 export interface ScoreBookProps {
   scores: ScoreEntry[]; // 全量成绩（未分段），组件内按 tab skinId 过滤
   skin: SkinConfig; // 当前所选皮肤——决定 tab 集与控件配色
-  lastRun: Recording | null; // 当前皮肤最近一局录像，null 时回放入口置灰
+  lastRun: Recording | null; // 全局最近一局录像（按当前 tab 皮肤点亮），null 或 skinId ≠ 当前 tab 皮肤时回放入口置灰
   onReplayLast: () => void;
   onClose: () => void;
 }
@@ -90,7 +90,7 @@ export default function ScoreBook({ scores, skin, lastRun, onReplayLast, onClose
       <button
         type="button"
         onClick={onReplayLast}
-        disabled={lastRun === null}
+        disabled={lastRun === null || lastRun.skinId !== activeSkin.id}
         className={btnCls}
         style={btnStyle}
       >
