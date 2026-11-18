@@ -40,12 +40,18 @@ export default function ReplayPlayer({ recording, skin, onClose }: ReplayPlayerP
   }, [playing, idx, last]);
 
   const current = frames[idx] ?? null;
-  // 事件标记：暂停/恢复在到达对应 tick 时显示——时间轴不重复帧，只加标记
-  const marker = current
-    ? recording.events.find(
-        (e) => (e.type === "pause" || e.type === "resume") && e.tick === current.tick,
-      )
-    : undefined;
+  // 事件标记：暂停/恢复在到达对应 tick 时显示——取「最后一个」匹配事件，多段暂停才对得上时间轴。
+  // 倒序找而非 Array.findLast：tsconfig lib=ES2020 无此 API，抬 lib 会牵动 vite 构建目标
+  let marker: (typeof recording.events)[number] | undefined;
+  if (current) {
+    for (let i = recording.events.length - 1; i >= 0; i--) {
+      const e = recording.events[i];
+      if ((e.type === "pause" || e.type === "resume") && e.tick === current.tick) {
+        marker = e;
+        break;
+      }
+    }
+  }
 
   const stepBy = (delta: number) => {
     setPlaying(false);

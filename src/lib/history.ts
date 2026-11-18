@@ -1,4 +1,5 @@
 /** 成绩册与最近一局录像的 localStorage 存取——读侧守卫前置（畸形数据不得引发渲染层异常）。Storage 参数注入，不直调 window.localStorage。 */
+import { DEFAULT_SKIN_ID, SKINS } from "../config/skins";
 import type { DeathCause } from "./game";
 import { isWellFormedRecording, type Recording } from "./recorder";
 
@@ -79,5 +80,24 @@ export function saveLastRun(storage: Storage, rec: Recording): void {
     storage.setItem(LAST_RUN_KEY, JSON.stringify(rec));
   } catch {
     // 配额满或序列化失败——静默丢弃，不打断游戏
+  }
+}
+
+/** 皮肤选择键——原样存皮肤 id 字符串（非 JSON） */
+export const SKIN_KEY = "hsnake.v1.skin";
+
+/** 读侧守卫：缺键/不在 SKINS 中的 id 一律回落 DEFAULT_SKIN_ID（2048 白屏教训，模式同 Task 4）。 */
+export function loadSkinId(storage: Storage): string {
+  const raw = storage.getItem(SKIN_KEY);
+  if (raw === null) return DEFAULT_SKIN_ID;
+  return SKINS.some((s) => s.id === raw) ? raw : DEFAULT_SKIN_ID;
+}
+
+/** 存皮肤 id。写侧 try/catch：quota 失败静默不炸 UI。 */
+export function saveSkinId(storage: Storage, id: string): void {
+  try {
+    storage.setItem(SKIN_KEY, id);
+  } catch {
+    // 配额满——静默丢弃，不打断游戏
   }
 }

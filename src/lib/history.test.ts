@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
+import { DEFAULT_SKIN_ID } from "../config/skins";
 import { createInitialState, step, type DeathCause } from "./game";
 import { createRecording, finishRecording, recordTick, type Recording } from "./recorder";
-import { bestScore, LAST_RUN_KEY, loadLastRun, loadScores, saveLastRun, saveScore, SCORES_KEY, type ScoreEntry } from "./history";
+import { bestScore, LAST_RUN_KEY, loadLastRun, loadScores, loadSkinId, saveLastRun, saveScore, saveSkinId, SCORES_KEY, SKIN_KEY, type ScoreEntry } from "./history";
 
 /** 内存假 Storage——Map 实现，2048 同款手写，零依赖。 */
 class FakeStorage implements Storage {
@@ -152,6 +153,40 @@ describe("bestScore", () => {
 
   it("空数组→0", () => {
     expect(bestScore([], "classic")).toBe(0);
+  });
+});
+
+describe("loadSkinId / saveSkinId", () => {
+  it("缺键→DEFAULT_SKIN_ID", () => {
+    expect(loadSkinId(new FakeStorage())).toBe(DEFAULT_SKIN_ID);
+  });
+
+  it("合法皮肤 id 原样读回", () => {
+    const s = new FakeStorage();
+    s.setItem(SKIN_KEY, "handheld");
+    expect(loadSkinId(s)).toBe("handheld");
+  });
+
+  it("非法值（不在 SKINS 中）→DEFAULT_SKIN_ID", () => {
+    const s = new FakeStorage();
+    s.setItem(SKIN_KEY, "classic");
+    expect(loadSkinId(s)).toBe(DEFAULT_SKIN_ID);
+    s.setItem(SKIN_KEY, "not-a-skin");
+    expect(loadSkinId(s)).toBe(DEFAULT_SKIN_ID);
+  });
+
+  it("saveSkinId→loadSkinId 往返", () => {
+    const s = new FakeStorage();
+    saveSkinId(s, "handheld");
+    expect(loadSkinId(s)).toBe("handheld");
+  });
+
+  it("写侧 setItem 抛错（quota）静默不炸", () => {
+    const s = new FakeStorage();
+    s.setItem = () => {
+      throw new Error("QuotaExceededError");
+    };
+    expect(() => saveSkinId(s, "handheld")).not.toThrow();
   });
 });
 

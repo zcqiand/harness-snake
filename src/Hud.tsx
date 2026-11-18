@@ -5,10 +5,10 @@ export interface HudProps {
   score: number;
   tick: number;
   skin: SkinConfig;
-  paused: boolean; // 暂停时 REC 停闪变灰
+  running: boolean; // 仅 running 相 REC 闪烁；待机/暂停/终局停闪变灰
 }
 
-export default function Hud({ score, tick, skin, paused }: HudProps) {
+export default function Hud({ score, tick, skin, running }: HudProps) {
   const intervalMs = tickIntervalMs(skin, score);
   return (
     <div
@@ -17,9 +17,9 @@ export default function Hud({ score, tick, skin, paused }: HudProps) {
     >
       <span className="flex items-center gap-2 font-bold tracking-widest">
         <span
-          aria-label={paused ? "已暂停" : "录制中"}
-          className={`inline-block h-3 w-3 rounded-full ${paused ? "" : "rec-blink"}`}
-          style={{ backgroundColor: paused ? skin.colors.grid : skin.colors.rec }}
+          aria-label={running ? "录制中" : "未在录制"}
+          className={`inline-block h-3 w-3 rounded-full ${running ? "rec-blink" : ""}`}
+          style={{ backgroundColor: running ? skin.colors.rec : skin.colors.grid }}
         />
         REC
       </span>
