@@ -1,1 +1,17 @@
 @import "tailwindcss";
+
+/* REC 红点闪烁——行车记录仪「录制中」仪式感；暂停时组件侧移除本类即停闪 */
+@keyframes rec-blink {
+  0%,
+  55% {
+    opacity: 1;
+  }
+  56%,
+  100% {
+    opacity: 0.1;
+  }
+}
+
+.rec-blink {
+  animation: rec-blink 1s infinite;
+}
