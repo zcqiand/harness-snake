@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "suite_version": "0.6.0",
+  "project": "harness-snake",
+  "stack": "react-ts",
+  "gates": {
+    "L1": {
+      "name": "类型（tsc --noEmit）",
+      "cmd": [
+        "npx",
+        "--no",
+        "--",
+        "tsc",
+        "--noEmit"
+      ],
+      "fix": "补全/修正类型；禁 any、禁放宽 tsconfig。游戏规则（lib/game.ts）的纯函数签名不变，UI 层类型随规则层走。"
+    },
+    "L4": {
+      "name": "测试（vitest 全量，无 Key/无网可跑）",
+      "cmd": [
+        "npx",
+        "--no",
+        "--",
+        "vitest",
+        "run"
+      ],
+      "fix": "先让测试变绿。改测试前必须先说明理由；规则层（game/recorder/history）改动后测试必须覆盖新分支。"
+    }
+  },
+  "trace_cmd": [],
+  "trace_env": {},
+  "source_dirs": [
+    "src"
+  ],
+  "test_dirs": []
+}

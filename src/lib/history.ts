@@ -1,4 +1,4 @@
-/** 成绩册与最近一局录像的 localStorage 存取——读侧守卫前置（畸形数据不得引发渲染层异常）。Storage 参数注入，不直调 window.localStorage。 */
+/** 成绩册与最近一局录像的 localStorage 存取——读侧守卫前置（畸形数据不得引发渲染层异常）。Storage 参数注入，不直调 window.localStorage。 @impl M03.F01.I01 */
 import { DEFAULT_SKIN_ID, SKINS } from "../config/skins";
 import type { DeathCause } from "./game";
 import { isWellFormedRecording, type Recording } from "./recorder";

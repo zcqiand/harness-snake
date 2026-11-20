@@ -1,4 +1,4 @@
-/** 事故报告卡——终局面板：死因中文文案 + 分数/tick + 回放/再来两按钮。配色全走 skin.colors，零硬编码色值。 */
+/** 事故报告卡——终局面板：死因中文文案 + 分数/tick + 回放/再来两按钮。配色全走 skin.colors，零硬编码色值。 @impl M02.F03.I01 */
 import type { SkinConfig } from "./config/skins";
 import type { Recording } from "./lib/recorder";
 

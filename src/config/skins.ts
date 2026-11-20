@@ -23,6 +23,7 @@ export interface SkinConfig {
   };
 }
 
+/** @impl M04.F01.I01 */
 export const SKINS: readonly SkinConfig[] = [
   {
     // 行车记录仪默认皮肤：近黑底 + 荧光绿蛇 + 亮红食物，rec 红点醒目

@@ -1,4 +1,4 @@
-/** 仪表盘 HUD——REC 红点/分数/tick 码表/速度档/皮肤名。纯渲染，配色全走 skin.colors，零硬编码色值。 */
+/** 仪表盘 HUD——REC 红点/分数/tick 码表/速度档/皮肤名。纯渲染，配色全走 skin.colors，零硬编码色值。 @impl M05.F03.I01 */
 import { tickIntervalMs, type SkinConfig } from "./config/skins";
 
 export interface HudProps {

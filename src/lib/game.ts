@@ -60,6 +60,7 @@ const cellKey = (c: Cell) => `${c.x},${c.y}`;
 
 const sameCell = (a: Cell, b: Cell) => a.x === b.x && a.y === b.y;
 
+/** @impl M01.F01.I01 */
 export function createInitialState(rng: () => number): SnakeState {
   return {
     // 拷贝一份，避免状态变更污染常量
@@ -72,7 +73,7 @@ export function createInitialState(rng: () => number): SnakeState {
   };
 }
 
-/** 同向或 180° 都忽略（返回 null），其余放行。 */
+/** 同向或 180° 都忽略（返回 null），其余放行。 @impl M01.F02.I01 */
 export function filterInput(current: Direction, next: Direction): Direction | null {
   if (next === current || next === OPPOSITE[current]) return null;
   return next;
@@ -99,6 +100,7 @@ export function placeFood(occupied: readonly Cell[], rng: () => number): Cell | 
   return empty[Math.min(empty.length - 1, Math.max(0, Math.floor(rng() * empty.length)))];
 }
 
+/** @impl M01.F03.I01 */
 export function step(state: SnakeState, rng: () => number): StepResult {
   if (state.status !== "running") return { state, event: "move" };
 

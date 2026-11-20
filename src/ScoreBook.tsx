@@ -1,4 +1,4 @@
-/** 成绩册面板——按皮肤分段（默认皮肤 + 当前所选皮肤 tab），显示最佳与历史；「回放最近一局」入口挂当前皮肤录像。纯渲染，配色全走 skin.colors。 */
+/** 成绩册面板——按皮肤分段（默认皮肤 + 当前所选皮肤 tab），显示最佳与历史；「回放最近一局」入口挂当前皮肤录像。纯渲染，配色全走 skin.colors。 @impl M03.F02.I01 */
 import { useState } from "react";
 import { DEFAULT_SKIN_ID, getSkin, type SkinConfig } from "./config/skins";
 import { bestScore, type ScoreEntry } from "./lib/history";

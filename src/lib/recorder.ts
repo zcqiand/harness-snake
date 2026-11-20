@@ -79,6 +79,7 @@ export function createRecording(skinId: string, startedAt: number): Recording {
  * 不是长度差分。终局 tick 蛇身不动，正常调用纪律是「仅非终局 tick（move/food）调用」；
  * 误传终局对（dead/won）时这里兜底不记帧——终局 tick 不产生 TickFrame 是硬不变量。
  */
+/** @impl M02.F01.I01 */
 export function recordTick(rec: Recording, prev: SnakeState, next: SnakeState): void {
   if (next.status !== "running") return; // 终局 tick 蛇身不动，无可记增量
   const prevTail = prev.cells[prev.cells.length - 1];

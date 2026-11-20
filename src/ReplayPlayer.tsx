@@ -1,4 +1,4 @@
-/** 逐帧回放播放器——expandRecording 展开 + BoardView 复用渲染；棋盘按录制时皮肤忠实回放。 */
+/** 逐帧回放播放器——expandRecording 展开 + BoardView 复用渲染；棋盘按录制时皮肤忠实回放。 @impl M02.F02.I01 */
 import { useEffect, useMemo, useRef, useState } from "react";
 import BoardView from "./BoardView";
 import { getSkin, type SkinConfig } from "./config/skins";

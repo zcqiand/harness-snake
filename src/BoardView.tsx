@@ -1,4 +1,4 @@
-/** 棋盘纯渲染组件——20×20 CSS grid，配色全走 skin.colors，零硬编码色值。Task 6 ReplayPlayer 复用本组件。 */
+/** 棋盘纯渲染组件——20×20 CSS grid，配色全走 skin.colors，零硬编码色值。Task 6 ReplayPlayer 复用本组件。 @impl M05.F02.I01 */
 import type { Cell } from "./lib/game";
 import type { SkinConfig } from "./config/skins";
 

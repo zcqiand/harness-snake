@@ -1,4 +1,4 @@
-/** 仪表盘壳——局状态机与主循环只此一处持有 SnakeState。UI 层是唯一允许 Date.now/Math.random 的地方。 */
+/** 仪表盘壳——局状态机与主循环只此一处持有 SnakeState。UI 层是唯一允许 Date.now/Math.random 的地方。 @impl M05.F01.I01 */
 import { useCallback, useEffect, useRef, useState } from "react";
 import BoardView from "./BoardView";
 import Hud from "./Hud";
@@ -161,7 +161,7 @@ export default function App() {
     gotoPhase("idle");
   }, [gotoPhase]);
 
-  // 换皮：落 localStorage + 重置回待机开新局
+  // 换皮：落 localStorage + 重置回待机开新局 @impl M04.F02.I01
   const changeSkin = useCallback(
     (id: string) => {
       if (id === skinId) return;
@@ -194,7 +194,7 @@ export default function App() {
   }, [phase, intervalMs, runTick]);
 
   // 方向输入统一入口：待机/终局按方向=开局；局中经 filterInput 入单缓冲（同向/180° 忽略）。
-  // 键盘与触屏滑动都走这里——同一 filterInput 入口，双输入零分叉。
+  // 键盘与触屏滑动都走这里——同一 filterInput 入口，双输入零分叉。 @impl M05.F04.I01
   const handleDirInput = useCallback(
     (dir: Direction) => {
       const current = phaseRef.current;
